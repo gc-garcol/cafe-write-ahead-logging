@@ -7,7 +7,7 @@ plugins {
 }
 
 group = "io.github.gc-garcol"
-version = "1.3.0"
+version = "0.0.1"
 
 java {
     withJavadocJar()
@@ -60,7 +60,7 @@ jreleaser {
                 create("sonatype") {
                     active = Active.ALWAYS
                     url.set("https://central.sonatype.com/api/v1/publisher")
-                    stagingRepositories.add("lib-core/build/staging-deploy")
+                    stagingRepositories.add("wal-core/build/staging-deploy")
                 }
             }
         }
