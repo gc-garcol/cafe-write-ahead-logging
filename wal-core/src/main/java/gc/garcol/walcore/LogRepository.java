@@ -35,7 +35,7 @@ public class LogRepository
      *
      * @param baseLogDir the base directory for log files
      */
-    public LogRepository(String baseLogDir) throws IOException
+    public LogRepository(String baseLogDir)
     {
         LogUtil.createDirectoryNX(baseLogDir);
         this.baseLogDir = baseLogDir;

@@ -35,7 +35,4 @@ out/
 
 ### VS Code ###
 .vscode/
-
-benchmark/
-
-benchmark-result.**
+.env
