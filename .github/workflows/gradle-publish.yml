@@ -40,8 +40,6 @@ jobs:
     # the publishing section of your build.gradle
     - name: Stage all artifacts to a local directory (for jreleaser)
       run: ./gradlew :wal-core:publish
-      env:
-        GITHUB_TOKEN: ${{ secrets.TOKEN }}
 
     # For Jreleaser
     - name: Publish to Maven Central
