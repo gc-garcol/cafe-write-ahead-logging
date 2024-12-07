@@ -23,6 +23,8 @@ public class LogRepository
     private static ByteBuffer indexBufferWriter = ByteBuffer.allocate(LogIndex.SIZE);
     private static ByteBuffer indexBufferReader = ByteBuffer.allocate(LogIndex.SIZE);
 
+    private static final long FIRST_SEGMENT = 0;
+
     private final String baseLogDir;
 
     public long currentSegment;
@@ -57,7 +59,7 @@ public class LogRepository
             .filter(Files::isRegularFile) // Include only regular files
             .sorted(Comparator.comparing(Path::getFileName)) // Sort by file name
             .reduce((first, second) -> second);
-        return lastFile.map(path -> LogUtil.segment(path.getFileName().toString())).orElse(0L);
+        return lastFile.map(path -> LogUtil.segment(path.getFileName().toString())).orElse(FIRST_SEGMENT);
     }
 
     private void generateFiles(long segment) throws IOException
@@ -99,8 +101,8 @@ public class LogRepository
      */
     public void read(long segment, long index, ByteBuffer readerBuffer) throws IOException
     {
-        RandomAccessFile indexFileRead = segment == currentSegment ? indexFile : new RandomAccessFile(indexPath(segment), "r");
-        RandomAccessFile logFileRead = segment == currentSegment ? logFile : new RandomAccessFile(logPath(segment), "r");
+        RandomAccessFile indexFileRead = indexFile != null && segment == currentSegment ? indexFile : new RandomAccessFile(indexPath(segment), "r");
+        RandomAccessFile logFileRead = logFile != null && segment == currentSegment ? logFile : new RandomAccessFile(logPath(segment), "r");
 
         indexFileRead.seek(index * LogIndex.SIZE);
         var logIndex = new LogIndex(indexFileRead.readLong(), indexFileRead.readInt());
