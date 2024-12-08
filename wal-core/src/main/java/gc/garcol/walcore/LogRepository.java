@@ -20,15 +20,19 @@ import java.util.Optional;
  */
 public class LogRepository
 {
+    /**
+     * The first segment number.
+     */
+    public static final long FIRST_SEGMENT = 0;
+
     private static ByteBuffer indexBufferWriter = ByteBuffer.allocate(LogIndex.SIZE);
     private static ByteBuffer indexBufferReader = ByteBuffer.allocate(LogIndex.SIZE);
 
-    private static final long FIRST_SEGMENT = 0;
-
     private final String baseLogDir;
 
-    public long currentSegment;
-    public long currentIndex;
+    long currentSegment;
+    long currentIndex;
+
     RandomAccessFile indexFile;
     RandomAccessFile logFile;
     FileChannel indexChannel;
@@ -58,10 +62,9 @@ public class LogRepository
     public long getLatestSegment() throws IOException
     {
         Optional<Path> lastFile = Files.list(Paths.get(baseLogDir))
-            .filter(Files::isRegularFile) // Include only regular files
-            .sorted(Comparator.comparing(Path::getFileName)) // Sort by file name
-            .reduce((first, second) -> second);
-        return lastFile.map(path -> LogUtil.segment(path.getFileName().toString())).orElse(FIRST_SEGMENT);
+            .filter(Files::isRegularFile)
+            .max(Comparator.comparing(Path::getFileName));
+        return lastFile.map(path -> LogUtil.segment(path.getFileName().toString())).orElse(-1L);
     }
 
     private void generateFiles(long segment) throws IOException

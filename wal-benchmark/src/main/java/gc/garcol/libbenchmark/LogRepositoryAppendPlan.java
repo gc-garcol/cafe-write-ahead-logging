@@ -24,7 +24,11 @@ public class LogRepositoryAppendPlan
     public void setUp(Blackhole blackhole) throws IOException
     {
         logRepository = new LogRepository("benchmark/logs");
-        logRepository.switchToSegment(logRepository.getLatestSegment());
+        logRepository.switchToSegment(
+            logRepository.getLatestSegment() < 0
+                ? LogRepository.FIRST_SEGMENT
+                : logRepository.getLatestSegment()
+        );
         writeBuffer.put("Hello, World!".getBytes());
         writeBuffer.flip();
     }
