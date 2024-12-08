@@ -31,6 +31,8 @@ public class LogRepository
     public long currentIndex;
     RandomAccessFile indexFile;
     RandomAccessFile logFile;
+    FileChannel indexChannel;
+    FileChannel logChannel;
 
     /**
      * Constructs a `LogRepository` with the specified base log directory.
@@ -67,6 +69,8 @@ public class LogRepository
         indexFile = new RandomAccessFile(indexPath(segment), "rw");
         logFile = new RandomAccessFile(logPath(segment), "rw");
         currentIndex = totalRecords(currentSegment);
+        indexChannel = indexFile.getChannel();
+        logChannel = logFile.getChannel();
     }
 
     /**
@@ -114,7 +118,6 @@ public class LogRepository
         readerBuffer.limit(logIndex.entryLength());
         var logChannel = logFileRead.getChannel();
         logChannel.read(readerBuffer, logIndex.index());
-        logChannel.close();
         readerBuffer.flip();
     }
 
@@ -130,9 +133,6 @@ public class LogRepository
      */
     public void append(ByteBuffer logs) throws IOException
     {
-        FileChannel indexChannel = indexFile.getChannel();
-        FileChannel logChannel = logFile.getChannel();
-
         indexBufferWriter.clear();
         indexBufferWriter.putLong(logFile.length());
         indexBufferWriter.putInt(logs.limit());
@@ -142,9 +142,6 @@ public class LogRepository
         var indexOffset = indexChannel.size();
         logChannel.write(logs, logOffset);
         indexChannel.write(indexBufferWriter, indexOffset);
-
-        logChannel.force(true);
-        indexChannel.force(true);
         currentIndex++;
     }
 
@@ -177,7 +174,6 @@ public class LogRepository
             LogIndex logIndex = new LogIndex(indexBufferReader.getLong(), indexBufferReader.getInt());
             indexFile.setLength(fromIndex * LogIndex.SIZE);
             logFile.setLength(logIndex.index());
-            indexChannel.close();
         }
     }
 
