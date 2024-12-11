@@ -141,8 +141,8 @@ public class LogRepository
         indexBufferWriter.putInt(logs.limit());
         indexBufferWriter.flip();
 
-        var logOffset = logChannel.size();
-        var indexOffset = indexChannel.size();
+        var logOffset = logFile.length();
+        var indexOffset = indexFile.length();
         logChannel.write(logs, logOffset);
         indexChannel.write(indexBufferWriter, indexOffset);
         currentIndex++;
