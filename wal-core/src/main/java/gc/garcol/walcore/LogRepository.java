@@ -18,8 +18,7 @@ import java.util.Optional;
  * @author thaivc
  * @since 2024
  */
-public class LogRepository
-{
+public class LogRepository {
     /**
      * The first segment number.
      */
@@ -38,13 +37,15 @@ public class LogRepository
     FileChannel indexChannel;
     FileChannel logChannel;
 
+    long logOffset;
+    long indexOffset;
+
     /**
      * Constructs a `LogRepository` with the specified base log directory.
      *
      * @param baseLogDir the base directory for log files
      */
-    public LogRepository(String baseLogDir)
-    {
+    public LogRepository(String baseLogDir) {
         LogUtil.createDirectoryNX(baseLogDir);
         this.baseLogDir = baseLogDir;
     }
@@ -59,21 +60,21 @@ public class LogRepository
      * @return the segment number of the latest log file, or 0 if no log files are found
      * @throws IOException if an I/O error occurs while accessing the log directory
      */
-    public long getLatestSegment() throws IOException
-    {
+    public long getLatestSegment() throws IOException {
         Optional<Path> lastFile = Files.list(Paths.get(baseLogDir))
             .filter(Files::isRegularFile)
             .max(Comparator.comparing(Path::getFileName));
         return lastFile.map(path -> LogUtil.segment(path.getFileName().toString())).orElse(-1L);
     }
 
-    private void generateFiles(long segment) throws IOException
-    {
+    private void generateFiles(long segment) throws IOException {
         indexFile = new RandomAccessFile(indexPath(segment), "rw");
         logFile = new RandomAccessFile(logPath(segment), "rw");
         currentIndex = totalRecords(currentSegment);
         indexChannel = indexFile.getChannel();
         logChannel = logFile.getChannel();
+        logOffset = logFile.length();
+        indexOffset = indexFile.length();
     }
 
     /**
@@ -86,11 +87,9 @@ public class LogRepository
      * @throws IOException              if an I/O error occurs during the file operations
      * @throws IllegalArgumentException if the specified segment is older than the current segment
      */
-    public void switchToSegment(long segment) throws IOException
-    {
+    public void switchToSegment(long segment) throws IOException {
         long latestSegment = getLatestSegment();
-        if (segment < latestSegment)
-        {
+        if (segment < latestSegment) {
             throw new IllegalArgumentException("Cannot switch to an older segment");
         }
         currentSegment = segment;
@@ -106,8 +105,7 @@ public class LogRepository
      * @param readerBuffer the buffer to read the log entry into
      * @throws IOException if an I/O error occurs
      */
-    public void read(long segment, long index, ByteBuffer readerBuffer) throws IOException
-    {
+    public void read(long segment, long index, ByteBuffer readerBuffer) throws IOException {
         RandomAccessFile indexFileRead = indexFile != null && segment == currentSegment ? indexFile : new RandomAccessFile(indexPath(segment), "r");
         RandomAccessFile logFileRead = logFile != null && segment == currentSegment ? logFile : new RandomAccessFile(logPath(segment), "r");
 
@@ -134,17 +132,16 @@ public class LogRepository
      * @param logs the buffer containing the log entries to append
      * @throws IOException if an I/O error occurs during the write operation
      */
-    public void append(ByteBuffer logs) throws IOException
-    {
+    public void append(ByteBuffer logs) throws IOException {
         indexBufferWriter.clear();
         indexBufferWriter.putLong(logFile.length());
         indexBufferWriter.putInt(logs.limit());
         indexBufferWriter.flip();
 
-        var logOffset = logFile.length();
-        var indexOffset = indexFile.length();
         logChannel.write(logs, logOffset);
         indexChannel.write(indexBufferWriter, indexOffset);
+        logOffset += logs.limit();
+        indexOffset += LogIndex.SIZE;
         currentIndex++;
     }
 
@@ -157,19 +154,16 @@ public class LogRepository
      * @param fromIndex the index from which to truncate
      * @throws IOException if an I/O error occurs
      */
-    public void truncate(long segment, long fromIndex) throws IOException
-    {
+    public void truncate(long segment, long fromIndex) throws IOException {
         File indexFileSys = new File(indexPath(segment));
-        if (!indexFileSys.exists())
-        {
+        if (!indexFileSys.exists()) {
             return;
         }
 
         try (
             RandomAccessFile indexFile = new RandomAccessFile(indexPath(segment), "rw");
             RandomAccessFile logFile = new RandomAccessFile(logPath(segment), "rw")
-        )
-        {
+        ) {
             indexBufferReader.clear();
             var indexChannel = indexFile.getChannel();
             indexChannel.read(indexBufferReader, fromIndex * LogIndex.SIZE);
@@ -187,19 +181,16 @@ public class LogRepository
      * @return the total number of records
      * @throws IOException if an I/O error occurs
      */
-    public long totalRecords(long segment) throws IOException
-    {
+    public long totalRecords(long segment) throws IOException {
         RandomAccessFile indexFileRead = segment == currentSegment ? indexFile : new RandomAccessFile(indexPath(segment), "r");
         return indexFileRead.length() / LogIndex.SIZE;
     }
 
-    private String indexPath(long segment)
-    {
+    private String indexPath(long segment) {
         return baseLogDir + "/" + LogUtil.indexName(segment);
     }
 
-    private String logPath(long segment)
-    {
+    private String logPath(long segment) {
         return baseLogDir + "/" + LogUtil.logName(segment);
     }
 }

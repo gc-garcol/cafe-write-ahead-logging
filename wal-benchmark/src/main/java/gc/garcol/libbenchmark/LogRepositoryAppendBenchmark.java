@@ -12,7 +12,7 @@ import java.util.concurrent.TimeUnit;
  */
 @State(Scope.Thread)
 @BenchmarkMode({ Mode.Throughput, Mode.AverageTime })
-@OutputTimeUnit(TimeUnit.SECONDS)
+@OutputTimeUnit(TimeUnit.MILLISECONDS)
 @Fork(1)
 public class LogRepositoryAppendBenchmark
 {
