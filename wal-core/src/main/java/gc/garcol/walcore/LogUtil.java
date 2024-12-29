@@ -15,6 +15,10 @@ import java.io.File;
 public class LogUtil
 {
 
+    private LogUtil()
+    {
+    }
+
     private static final int LONG_LENGTH = String.valueOf(Long.MAX_VALUE).length();
     private static final String LOG_FORMAT = "%0" + LONG_LENGTH + "d" + ".dat";
     private static final String INDEX_FORMAT = "%0" + LONG_LENGTH + "d" + ".index.dat";
